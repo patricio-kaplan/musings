@@ -2,13 +2,10 @@ from myhdl import *
 import sys
 
 sys.path.append('src_build')
+import verilated_wrap
 import verilated_vcd_c_wrap
 import fifo_wrap
 
-def forker(clk):
-	while 1:
-		print "forked"
-		yield clk.negedge
 
 def driver(clk,dut):
 	@instance
@@ -21,8 +18,6 @@ def driver(clk,dut):
 		dut.rst=0
 		print "done initializing"
 
-		f = forker(clk)
-
 		while True:
 			dut.wr=1
 			dut.wr_data+=1
@@ -33,12 +28,20 @@ def driver(clk,dut):
 def testbench():
 	clk = Signal(intbv(0))
 
-	@always(delay(10))
-	def clkGen(): clk.next = not clk;
-
+	verilated_wrap.traceEverOn(True)
+	tracer = verilated_vcd_c_wrap.VerilatedVcdC()
 	dut = fifo_wrap.Vfifo("hello")
+	dut.trace(tracer,99,100)
+	tracer.open('dump.vcd')
+
 	dut.rst=1
 	dut.clk=0
+
+	@always(delay(10))
+	def clkGen(): 
+		tracer.dump(now())
+		clk.next = not clk;
+
 	@always(clk.posedge, clk.negedge)
 	def dut_wrap():
 		dut.clk=int(clk)
@@ -49,11 +52,13 @@ def testbench():
 	@instance
 	def stimulus():
 		for i in range (10): yield clk.negedge
+		tracer.close()
 		raise StopSimulation
 
 	return clkGen, stimulus, dut_wrap, d
 
 
 tb=testbench()	
+
 
 Simulation(tb).run()
