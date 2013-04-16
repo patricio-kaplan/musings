@@ -1,0 +1,21 @@
+Import('env')
+
+env.SharedLibrary('fifo_wrap.so', 
+			['../obj_dir/Vfifo.cpp'
+			,'../obj_dir/Vfifo__Syms.cpp'
+			,'../obj_dir/Vfifo__Trace.cpp'
+			,'../obj_dir/Vfifo__Trace__Slow.cpp'
+			,'../src/fifo_wrap.cpp'
+ 			,'../include/verilated_vcd_c.cpp'
+ 			,'../include/verilated.cpp'
+ 			])
+
+#			,'../verilator_build/verilated_vcd_c.so'
+#			])
+
+env.SharedLibrary('verilated_vcd_c_wrap.so', 
+			['verilated_vcd_c_wrap.cpp'
+			,'../verilator_build/verilated.so'
+			, '../verilator_build/verilated_vcd_c.so'
+			, '../include/verilated.cpp'
+			])

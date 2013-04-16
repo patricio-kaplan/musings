@@ -1,0 +1,52 @@
+from os import *
+
+platform = ARGUMENTS.get('OS', Platform())
+
+if 'VERILATOR_ROOT' in environ: _VERILATOR =environ['VERILATOR_ROOT']
+else: _VERILATOR ='/Users/patriciokaplan/Downloads/verilator-3.846'
+
+libs = Split("boost_python")
+
+if 'BOOST_LIB' in environ: libpath=Split(environ['BOOST_LIB'])
+else: libpath=[]
+
+includes = ["include","/usr/include/python2.7", _VERILATOR+'/include']
+
+if 'BOOST_INCLUDE' in environ: includes.append(environ['BOOST_INCLUDE'])
+
+frameworks = Split("Python")
+
+def verilator_emitter (target, source, env):
+	for s in source:
+		f = str(s)[:-2]
+		print "f=",f
+		target.append('obj_dir/V'+f+'.cpp')
+		target.append('obj_dir/V'+f+'.h')
+		target.append('obj_dir/V'+f+'__Syms.cpp')
+		target.append('obj_dir/V'+f+'__Syms.h')
+		target.append('obj_dir/V'+f+'__Trace.cpp')
+		target.append('obj_dir/V'+f+'__Trace__Slow.h')
+	return target,source
+	
+	
+
+bld = Builder(action='verilator --trace --cc $SOURCE', emitter=verilator_emitter)
+#bld = Builder(action='verilator --cc $SOURCE')
+
+env = Environment(
+                  CPPPATH = includes,
+                  LIBS = libs,
+                  LIBPATH = libpath,
+                  FRAMEWORKS = frameworks,
+                  SHLIBPREFIX = '',
+                  SHLIBSUFFIX = '.dylib',
+		  BUILDERS={'Verilator':bld}
+                )
+d=env.Dictionary()
+d['VERILATOR']=_VERILATOR
+Export('env')
+
+Repository(env['VERILATOR'])
+env.Verilator('fifo.v')
+env.SConscript('include/SConscript', variant_dir='verilator_build')
+env.SConscript('src/SConscript', variant_dir='src_build')
