@@ -1,7 +1,7 @@
 from myhdl import *
 import sys
 
-sys.path.append('src_build')
+sys.path.append('/home/patricio/Documents/musings_gen/verilog/fifo/src')
 import verilated_wrap
 import verilated_vcd_c_wrap
 import fifo_wrap

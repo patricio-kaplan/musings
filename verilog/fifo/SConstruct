@@ -16,22 +16,25 @@ if 'BOOST_INCLUDE' in environ: includes.append(environ['BOOST_INCLUDE'])
 
 frameworks = Split("Python")
 
+gen_tree = '/home/patricio/Documents/musings_gen/verilog/fifo'
+verilator_obj_dir = gen_tree+'/obj_dir'
+
 def verilator_emitter (target, source, env):
 	for s in source:
 		f = str(s)[:-2]
 		print "f=",f
-		target.append('obj_dir/V'+f+'.cpp')
-		target.append('obj_dir/V'+f+'.h')
-		target.append('obj_dir/V'+f+'__Syms.cpp')
-		target.append('obj_dir/V'+f+'__Syms.h')
-		target.append('obj_dir/V'+f+'__Trace.cpp')
-		target.append('obj_dir/V'+f+'__Trace__Slow.h')
+		target.append(verilator_obj_dir+'/V'+f+'.cpp')
+		target.append(verilator_obj_dir+'/V'+f+'.h')
+		target.append(verilator_obj_dir+'/V'+f+'__Syms.cpp')
+		target.append(verilator_obj_dir+'/V'+f+'__Syms.h')
+		target.append(verilator_obj_dir+'/V'+f+'__Trace.cpp')
+		target.append(verilator_obj_dir+'/V'+f+'__Trace__Slow.h')
+		target.append(verilator_obj_dir+'/V'+f+'__Trace__Slow.cpp')
 	return target,source
 	
 	
 
-bld = Builder(action='verilator --trace --cc $SOURCE', emitter=verilator_emitter)
-#bld = Builder(action='verilator --cc $SOURCE')
+bld = Builder(action='verilator --Mdir '+verilator_obj_dir+' --trace --cc $SOURCE', emitter=verilator_emitter)
 
 env = Environment(
                   CPPPATH = includes,
@@ -44,9 +47,11 @@ env = Environment(
                 )
 d=env.Dictionary()
 d['VERILATOR']=_VERILATOR
+d['GEN_TREE']=gen_tree
 Export('env')
 
 Repository(env['VERILATOR'])
+VariantDir(gen_tree, '.')
 env.Verilator('fifo.v')
-env.SConscript('include/SConscript', variant_dir='verilator_build')
-env.SConscript('src/SConscript', variant_dir='src_build')
+env.SConscript(gen_tree+'/include/SConscript')#, variant_dir='verilator_build')
+env.SConscript(gen_tree+'/src/SConscript')#, variant_dir='src_build')

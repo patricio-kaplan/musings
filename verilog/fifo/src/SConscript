@@ -1,22 +1,24 @@
 Import('env')
 
+gen_tree=env['GEN_TREE']
+
 env.SharedLibrary('fifo_wrap.so', 
-			['../obj_dir/Vfifo.cpp'
-			,'../obj_dir/Vfifo__Syms.cpp'
-			,'../obj_dir/Vfifo__Trace.cpp'
-			,'../obj_dir/Vfifo__Trace__Slow.cpp'
-			,'../src/fifo_wrap.cpp'
- 			,'../verilator_build/verilated_vcd_c.so'
- 			,'../verilator_build/verilated.so'
+			[gen_tree+'/obj_dir/Vfifo.cpp'
+			,gen_tree+'/obj_dir/Vfifo__Syms.cpp'
+			,gen_tree+'/obj_dir/Vfifo__Trace.cpp'
+			,gen_tree+'/obj_dir/Vfifo__Trace__Slow.cpp'
+			,gen_tree+'/src/fifo_wrap.cpp'
+ 			,gen_tree+'/include/verilated_vcd_c.so'
+ 			,gen_tree+'/include/verilated.so'
  			])
 
 env.SharedLibrary('verilated_wrap.so', 
 			['verilated_wrap.cpp'
-			,'../verilator_build/verilated.so'
+			,gen_tree+'/include/verilated.so'
 			])
 
 env.SharedLibrary('verilated_vcd_c_wrap.so', 
 			['verilated_vcd_c_wrap.cpp'
-			,'../verilator_build/verilated_vcd_c.so'
-			,'../verilator_build/verilated.so'
+			,gen_tree+'/include/verilated_vcd_c.so'
+			,gen_tree+'/include/verilated.so'
 			])
