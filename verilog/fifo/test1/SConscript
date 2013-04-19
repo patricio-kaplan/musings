@@ -1,0 +1,20 @@
+Import('env')
+import os
+
+gen_tree = env['GEN_TREE']
+
+sfp = File('test.py').abspath
+
+# path relative to source tree
+rp = os.path.dirname(os.path.relpath(sfp, env['SRC_TREE']))
+
+target_dir = gen_tree+'/'+rp
+targets = [ ( target_dir+'/'+x ) for x in Split('out.log err.log') ]
+
+#node = env.PyScript(targets, 'test.py', capture='both')
+#node = env.Command(targets, 'test.py', [ Mkdir(target_dir), 'cd '+target_dir+' && python $SOURCE > ${TARGETS[0]} 2> ${TARGETS[1]}' ])
+node = env.Command(targets, 'test.py', [ Mkdir(target_dir), 'cd '+target_dir+' && python '+sfp+' > ${TARGETS[0]} 2> ${TARGETS[1]}' ])
+
+env.Depends(node, [ (gen_tree+'/src/'+x+'.so') for x in ['fifo_wrap' , 'verilated_wrap' , 'verilated_vcd_c_wrap'] ] )
+
+env.AlwaysBuild(targets)
