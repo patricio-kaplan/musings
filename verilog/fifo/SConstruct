@@ -1,4 +1,5 @@
 from os import *
+import sys
 from pyscons import PYTOOL
 
 platform = ARGUMENTS.get('OS', Platform())
@@ -19,22 +20,14 @@ frameworks = Split("Python")
 
 gen_tree = '/home/patricio/Documents/musings_gen/verilog/fifo'
 verilator_obj_dir = gen_tree+'/obj_dir'
+sys.path.append(gen_tree+'/src')
 
 def verilator_emitter (target, source, env):
 	for s in source:
-		f = str(s)[:-2]
-		print "f=",f
-		target.append(verilator_obj_dir+'/V'+f+'.cpp')
-		target.append(verilator_obj_dir+'/V'+f+'.h')
-		target.append(verilator_obj_dir+'/V'+f+'__Syms.cpp')
-		target.append(verilator_obj_dir+'/V'+f+'__Syms.h')
-		target.append(verilator_obj_dir+'/V'+f+'__Trace.cpp')
-		target.append(verilator_obj_dir+'/V'+f+'__Trace__Slow.h')
-		target.append(verilator_obj_dir+'/V'+f+'__Trace__Slow.cpp')
+		p = verilator_obj_dir+'/V'+ str(s)[:-2]
+		target = [ (p+x) for x in Split('.cpp .h __Syms.cpp __Syms.h __Trace.cpp __Trace__Slow.cpp') ]
 	return target,source
 	
-	
-
 bld = Builder(action='verilator --Mdir '+verilator_obj_dir+' --trace --cc $SOURCE', emitter=verilator_emitter)
 
 env = Environment(
@@ -45,7 +38,8 @@ env = Environment(
                   SHLIBPREFIX = '',
                   SHLIBSUFFIX = '.dylib',
 		  BUILDERS={'Verilator':bld},
-		  tools = ['default', PYTOOL(recursive = False)]
+		  tools = ['default', PYTOOL(recursive = False)],
+		  SRC_TREE=getcwd()
                 )
 d=env.Dictionary()
 d['VERILATOR']=_VERILATOR
@@ -53,9 +47,10 @@ d['GEN_TREE']=gen_tree
 Export('env')
 
 Repository(env['VERILATOR'])
+
 VariantDir(gen_tree, '.')
 env.Verilator('fifo.v')
-env.SConscript(gen_tree+'/include/SConscript')#, variant_dir='verilator_build')
-env.SConscript(gen_tree+'/src/SConscript')#, variant_dir='src_build')
-node = env.PyScript([gen_tree+'/test.py/out.log', gen_tree+'/test.py/err.log'], ['test.py'], capture="both")
-env.Depends(node, [ (gen_tree+'/src/'+x+'.so') for x in ['fifo_wrap' , 'verilated_wrap' , 'verilated_vcd_c_wrap'] ])
+env.SConscript(gen_tree+'/include/SConscript')
+env.SConscript(gen_tree+'/src/SConscript')
+
+env.SConscript('test1/SConscript')
