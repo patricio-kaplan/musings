@@ -36,7 +36,7 @@ always @(posedge clk) begin
 			$display ("WROTE %h to %h", wr_data, wrptr);
 		end
 	end
-	$display ("wr=%d, rd=%d, wrptr=%x rdptr=%x", wr,rd,wrptr,rdptr);
+	$display ("wr = %d, rd=%d, wrptr=%x rdptr=%x", wr,rd,wrptr,rdptr);
 end
 
 always @(*) begin

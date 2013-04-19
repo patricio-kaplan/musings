@@ -5,7 +5,7 @@ using namespace boost::python;
 
 BOOST_PYTHON_MODULE(fifo_wrap)
 {
-    class_<Vfifo, boost::noncopyable>("Vfifo", init<const char*>())
+    class_<Vfifo, boost::noncopyable>("Vfifo", init<const char*>() )
 		.def("eval", &Vfifo::eval)
 		.def("trace", &Vfifo::trace)
 		.def_readwrite("clk",&Vfifo::clk)

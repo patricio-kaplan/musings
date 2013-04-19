@@ -1,4 +1,5 @@
 from os import *
+from pyscons import PYTOOL
 
 platform = ARGUMENTS.get('OS', Platform())
 
@@ -43,7 +44,8 @@ env = Environment(
                   FRAMEWORKS = frameworks,
                   SHLIBPREFIX = '',
                   SHLIBSUFFIX = '.dylib',
-		  BUILDERS={'Verilator':bld}
+		  BUILDERS={'Verilator':bld},
+		  tools = ['default', PYTOOL(recursive = False)]
                 )
 d=env.Dictionary()
 d['VERILATOR']=_VERILATOR
@@ -55,3 +57,5 @@ VariantDir(gen_tree, '.')
 env.Verilator('fifo.v')
 env.SConscript(gen_tree+'/include/SConscript')#, variant_dir='verilator_build')
 env.SConscript(gen_tree+'/src/SConscript')#, variant_dir='src_build')
+node = env.PyScript([gen_tree+'/test.py/out.log', gen_tree+'/test.py/err.log'], ['test.py'], capture="both")
+env.Depends(node, [ (gen_tree+'/src/'+x+'.so') for x in ['fifo_wrap' , 'verilated_wrap' , 'verilated_vcd_c_wrap'] ])
