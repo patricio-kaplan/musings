@@ -21,7 +21,8 @@ print 'pp=',pp
 # the following 2 could be combined into a specialized "run_test" builder with its own scanner for external imports dependencies
 node = env.Command(targets, 'test.py', [ Mkdir(target_dir), ' cd '+target_dir
 							  + ' && '
-							  + ' env PYTHONPATH='+pp
+							  + ' env '
+							  + ' PYTHONPATH='+pp
 							  + ' python '+sfp+' > ${TARGETS[0]} 2> ${TARGETS[1]}' 
 					])
 env.Depends(node, [ (wrap_dir+'/'+x+'.so') for x in ['fifo_wrap' , 'verilated_wrap' , 'verilated_vcd_c_wrap'] ] )

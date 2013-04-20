@@ -9,14 +9,17 @@ else: _VERILATOR ='/Users/patriciokaplan/Downloads/verilator-3.846'
 
 libs = Split("boost_python")
 
-if 'BOOST_LIB' in environ: libpath=Split(environ['BOOST_LIB'])
-libpath=[]
+if 'BOOST_INCLUDE' in environ: libpath=Split(environ['BOOST_INCLUDE']+'/stage/lib')
+else: libpath=[]
 
 includes = ["include","/usr/include/python2.7", _VERILATOR+'/include']
 
 if 'BOOST_INCLUDE' in environ: includes.append(environ['BOOST_INCLUDE'])
 
-gen_tree = '/home/patricio/Documents/musings_gen/'+platform+'/verilog/fifo'
+if 'GEN_TREE' in environ: gen_tree=environ['GEN_TREE']
+else: gen_tree = '/home/patricio/Documents/musings_gen'
+
+gen_tree += '/' + platform + '/verilog/fifo'
 
 verilator_obj_dir = gen_tree+'/obj_dir'
 
@@ -38,8 +41,12 @@ env = Environment(
 		  BUILDERS={'Verilator':bld},
 		  SRC_TREE=getcwd(),
 		  GEN_TREE=gen_tree,
-		  VERILATOR=_VERILATOR
+		  VERILATOR=_VERILATOR,
                 )
+
+# copy dynamic libraries paths
+for v in Split('DYLD_FALLBACK_LIBRARY_PATH LD_LIBRARY_PATH'): env['ENV'][v]=environ[v]
+
 Export('env')
 
 Repository(env['VERILATOR'])
