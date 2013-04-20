@@ -1,8 +1,8 @@
 from os import *
 import sys
-from pyscons import PYTOOL
+import platform
 
-platform = ARGUMENTS.get('OS', Platform())
+platform = platform.platform(terse=1)
 
 if 'VERILATOR_ROOT' in environ: _VERILATOR =environ['VERILATOR_ROOT']
 else: _VERILATOR ='/Users/patriciokaplan/Downloads/verilator-3.846'
@@ -10,17 +10,15 @@ else: _VERILATOR ='/Users/patriciokaplan/Downloads/verilator-3.846'
 libs = Split("boost_python")
 
 if 'BOOST_LIB' in environ: libpath=Split(environ['BOOST_LIB'])
-else: libpath=[]
+libpath=[]
 
 includes = ["include","/usr/include/python2.7", _VERILATOR+'/include']
 
 if 'BOOST_INCLUDE' in environ: includes.append(environ['BOOST_INCLUDE'])
 
-frameworks = Split("Python")
+gen_tree = '/home/patricio/Documents/musings_gen/'+platform+'/verilog/fifo'
 
-gen_tree = '/home/patricio/Documents/musings_gen/verilog/fifo'
 verilator_obj_dir = gen_tree+'/obj_dir'
-sys.path.append(gen_tree+'/src')
 
 def verilator_emitter (target, source, env):
 	for s in source:
@@ -34,22 +32,22 @@ env = Environment(
                   CPPPATH = includes,
                   LIBS = libs,
                   LIBPATH = libpath,
-                  FRAMEWORKS = frameworks,
+                  FRAMEWORKS = Split("Python"),
                   SHLIBPREFIX = '',
                   SHLIBSUFFIX = '.dylib',
 		  BUILDERS={'Verilator':bld},
-		  tools = ['default', PYTOOL(recursive = False)],
-		  SRC_TREE=getcwd()
+		  SRC_TREE=getcwd(),
+		  GEN_TREE=gen_tree,
+		  VERILATOR=_VERILATOR
                 )
-d=env.Dictionary()
-d['VERILATOR']=_VERILATOR
-d['GEN_TREE']=gen_tree
 Export('env')
 
 Repository(env['VERILATOR'])
 
 VariantDir(gen_tree, '.')
+
 env.Verilator('fifo.v')
+
 env.SConscript(gen_tree+'/include/SConscript')
 env.SConscript(gen_tree+'/src/SConscript')
 
