@@ -60,7 +60,9 @@ env = Environment(
                 )
 
 # copy dynamic libraries paths
-for v in Split('DYLD_FALLBACK_LIBRARY_PATH LD_LIBRARY_PATH'): env['ENV'][v]=environ[v]
+for v in Split('DYLD_FALLBACK_LIBRARY_PATH LD_LIBRARY_PATH'): 
+	if v in environ:
+		env['ENV'][v]=environ[v]
 
 Export('env')
 
