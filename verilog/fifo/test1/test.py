@@ -1,8 +1,27 @@
 from myhdl import *
+import getopt
+import sys
 
-import verilated_wrap
-import verilated_vcd_c_wrap
-import fifo_wrap
+try:
+	opts,args=getopt.getopt(sys.argv, 'd')
+except getopt.GetoptError:
+	print argv[0], ' [-d] '
+	sys.exit(2)
+
+dump=0
+for i in opts: 
+	if i=='-d': 
+		print " note: dump is on"
+	 	dump=1
+
+if dump: 
+	import verilated_dump_wrap
+	import verilated_vcd_c_wrap
+	import fifo_dump_wrap
+else: 
+	import verilated_wrap
+	import fifo_wrap
+
 
 
 def driver(clk,dut):
@@ -26,18 +45,22 @@ def driver(clk,dut):
 def testbench():
 	clk = Signal(intbv(0))
 
-	verilated_wrap.traceEverOn(True)
-	tracer = verilated_vcd_c_wrap.VerilatedVcdC()
+	if dump:
+		verilated_wrap.traceEverOn(True)
+		tracer = verilated_vcd_c_wrap.VerilatedVcdC()
+
 	dut = fifo_wrap.Vfifo("hello")
-	dut.trace(tracer,99,100)
-	tracer.open('dump.vcd')
+
+	if dump:
+		dut.trace(tracer,99,100)
+		tracer.open('dump.vcd')
 
 	dut.rst=1
 	dut.clk=0
 
 	@always(delay(10))
 	def clkGen(): 
-		tracer.dump(now())
+		if dump: tracer.dump(now())
 		clk.next = not clk;
 
 	@always(clk.posedge, clk.negedge)
@@ -50,7 +73,7 @@ def testbench():
 	@instance
 	def stimulus():
 		for i in range (10): yield clk.negedge
-		tracer.close()
+		if dump: tracer.close()
 		raise StopSimulation
 
 	return clkGen, stimulus, dut_wrap, d

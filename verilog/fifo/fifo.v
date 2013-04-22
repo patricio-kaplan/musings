@@ -1,6 +1,6 @@
 module fifo 
 	#(parameter DEPTH=4
-	 ,parameter WIDTH=32
+	 ,parameter WIDTH=256
 	)
 	( input wire clk
 	, input wire rst
