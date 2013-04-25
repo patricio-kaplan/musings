@@ -34,10 +34,13 @@ def driver(clk,dut):
 		for i in range(4): yield clk.negedge
 		dut.rst=0
 		print "done initializing"
+		data=0
 
 		while True:
 			dut.wr=1
-			dut.wr_data+=1
+			for i in range(0,dut.wr_data_len()): 
+				dut.wr_data_set(i,data)
+				data+=1
 			yield clk.negedge
 
 	return body

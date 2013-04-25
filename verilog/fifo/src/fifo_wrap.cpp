@@ -1,48 +1,33 @@
 #include <boost/python.hpp>
 #include "../obj_dir/Vfifo.h"
-#include "__array_1.pypp.hpp"
 using namespace boost::python;
 
-// #define ASIZE sizeof(&Vfifo::wr_data)/sizeof(WData)
-#define ASIZE 8
 
-struct abc_wrapper : abc, bp::wrapper< abc > {
-
-    abc_wrapper(abc const & arg )
-    : abc( arg )
-      , bp::wrapper< abc >(){
-        // copy constructor
-        
-    }
-
-    abc_wrapper()
-    : abc()
-      , bp::wrapper< abc >(){
-        // null constructor
-        
-    }
-
-    static pyplusplus::containers::static_sized::array_1_t< int, 4>
-    pyplusplus_aa_wrapper( ::abc & inst ){
-        return pyplusplus::containers::static_sized::array_1_t< int, 4>( inst.aa );
-    }
-
+struct VfifoWrap : public Vfifo {
+	VfifoWrap(const char* name):Vfifo(name) {} 
+	int wr_data_len(void) const { return sizeof(wr_data)/sizeof(WData); }
+	WData wr_data_get(int idx) const { 
+		if (idx<0) { idx += wr_data_len(); }
+		if ((idx>=0) && (idx<wr_data_len())) { return wr_data[idx]; }
+		throw "IndexException";
+	}
+	WData wr_data_set(const int idx, const WData& d) { wr_data[idx]=d; }	
 };
-
-
 
 BOOST_PYTHON_MODULE(fifo_wrap)
 {
-    pyplusplus::containers::static_sized::register_array_1< WData, ASIZE  >( "__array_1_int_4" );
 
-    class_<Vfifo, boost::noncopyable>("Vfifo", init<const char*>() )
-		.def("eval", &Vfifo::eval)
-		.def_readwrite("clk",&Vfifo::clk)
-		.def_readwrite("rst",&Vfifo::rst)
-		.def_readwrite("wr",&Vfifo::wr)
-		.def_readwrite("rd",&Vfifo::rd)
-		.def_readonly("empty",&Vfifo::empty)
-		.def_readonly("full",&Vfifo::full);
+    class_<VfifoWrap, boost::noncopyable>("Vfifo", init<const char*>() )
+		.def("eval", &VfifoWrap::eval)
+		.def_readwrite("clk",&VfifoWrap::clk)
+		.def_readwrite("rst",&VfifoWrap::rst)
+		.def_readwrite("wr",&VfifoWrap::wr)
+		.def_readwrite("rd",&VfifoWrap::rd)
+		.def_readonly("empty",&VfifoWrap::empty)
+		.def_readonly("full",&VfifoWrap::full)
+		.def("wr_data_set", &VfifoWrap::wr_data_set)
+		.def("wr_data_get", &VfifoWrap::wr_data_get)
+		.def("wr_data_len", &VfifoWrap::wr_data_len)
+	;
 
-    scope().attr("wr_data") = wr_data_wrapper();
 }
