@@ -22,6 +22,12 @@ struct VfifoWrap : public Vfifo {
 		}
 		throw "WrDataSetIndexException";
 	}
+	int rd_data_len(void) const { return sizeof(rd_data)/sizeof(WData); }
+	WData rd_data_get(int idx) const { 
+		if (idx<0) { idx += rd_data_len(); }
+		if ((idx>=0) && (idx<rd_data_len())) { return rd_data[idx]; }
+		throw "RdDataGetIndexException";
+	}
 };
 
 #ifdef DUMP
@@ -42,6 +48,8 @@ BOOST_PYTHON_MODULE(fifo_wrap)
 		.def("wr_data_set", &VfifoWrap::wr_data_set)
 		.def("wr_data_get", &VfifoWrap::wr_data_get)
 		.def("wr_data_len", &VfifoWrap::wr_data_len)
+		.def("rd_data_get", &VfifoWrap::rd_data_get)
+		.def("rd_data_len", &VfifoWrap::rd_data_len)
 		#ifdef DUMP
 		.def("trace", &VfifoWrap::trace)
 		#endif
