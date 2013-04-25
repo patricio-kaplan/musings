@@ -3,23 +3,25 @@ import getopt
 import sys
 
 try:
-	opts,args=getopt.getopt(sys.argv, 'd')
-except getopt.GetoptError:
-	print argv[0], ' [-d] '
+	opts,args=getopt.getopt(sys.argv[1:], 'd')
+except getopt.GetoptError as err:
+	print err
+	print "usage: ", sys.argv[0], ' [-d] '
 	sys.exit(2)
 
 dump=0
-for i in opts: 
+for i,a in opts: 
 	if i=='-d': 
 		print " note: dump is on"
 	 	dump=1
 
+import verilated_wrap
+
 if dump: 
-	import verilated_dump_wrap
 	import verilated_vcd_c_wrap
-	import fifo_dump_wrap
+	import fifo_wrap_dump
 else: 
-	import verilated_wrap
+	print " note: dump is off"
 	import fifo_wrap
 
 
@@ -52,7 +54,8 @@ def testbench():
 		verilated_wrap.traceEverOn(True)
 		tracer = verilated_vcd_c_wrap.VerilatedVcdC()
 
-	dut = fifo_wrap.Vfifo("hello")
+	if dump: dut = fifo_wrap_dump.Vfifo("hello")
+	else:    dut = fifo_wrap.Vfifo("hello")
 
 	if dump:
 		dut.trace(tracer,99,100)

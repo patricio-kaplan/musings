@@ -1,5 +1,8 @@
 #include <boost/python.hpp>
-#include "../obj_dir/Vfifo.h"
+#include "Vfifo.h"
+#ifdef DUMP
+#include "verilated_vcd_c.h"
+#endif
 using namespace boost::python;
 
 
@@ -9,12 +12,23 @@ struct VfifoWrap : public Vfifo {
 	WData wr_data_get(int idx) const { 
 		if (idx<0) { idx += wr_data_len(); }
 		if ((idx>=0) && (idx<wr_data_len())) { return wr_data[idx]; }
-		throw "IndexException";
+		throw "WrDataGetIndexException";
 	}
-	WData wr_data_set(const int idx, const WData& d) { wr_data[idx]=d; }	
+	void wr_data_set(int idx, const WData& d) { 
+		if (idx<0) { idx += wr_data_len(); }
+		if ((idx>=0) && (idx<wr_data_len())) { 
+			wr_data[idx]=d;  
+			return;
+		}
+		throw "WrDataSetIndexException";
+	}
 };
 
+#ifdef DUMP
+BOOST_PYTHON_MODULE(fifo_wrap_dump)
+#else
 BOOST_PYTHON_MODULE(fifo_wrap)
+#endif
 {
 
     class_<VfifoWrap, boost::noncopyable>("Vfifo", init<const char*>() )
@@ -28,6 +42,9 @@ BOOST_PYTHON_MODULE(fifo_wrap)
 		.def("wr_data_set", &VfifoWrap::wr_data_set)
 		.def("wr_data_get", &VfifoWrap::wr_data_get)
 		.def("wr_data_len", &VfifoWrap::wr_data_len)
+		#ifdef DUMP
+		.def("trace", &VfifoWrap::trace)
+		#endif
 	;
 
 }

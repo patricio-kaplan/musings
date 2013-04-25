@@ -34,7 +34,7 @@ node = env.Command(targets, 'test.py', [ Mkdir(target_dir), ' cd '+target_dir
 					])
 
 if dump != '': 	
-	env.Depends(node, [ (wrap_dir+'/'+x+'_wrap.so') for x in Split('fifo verilated verilated_vcd_c') ] )
+	env.Depends(node, [ (wrap_dir+'/'+x) for x in Split('fifo_wrap_dump.so verilated_wrap.so verilated_vcd_c_wrap.so') ] )
 else:
 	env.Depends(node, [ (wrap_dir+'/'+x+'_wrap.so') for x in Split('fifo verilated') ] )
 

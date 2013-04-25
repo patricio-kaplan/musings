@@ -2,7 +2,6 @@ from os import *
 import sys
 import platform
 
-
 platform = platform.platform(terse=1)
 
 if 'VERILATOR_ROOT' in environ: _VERILATOR =environ['VERILATOR_ROOT']
@@ -22,8 +21,17 @@ else: gen_tree = '/home/patricio/Documents/musings_gen'
 
 gen_tree += '/' + platform + '/verilog/fifo'
 
-verilator_obj_dir = gen_tree+'/obj_dir'
+verilator_obj_dir      = gen_tree+'/obj_dir'
 verilator_obj_dir_dump = gen_tree+'/obj_dir_dump'
+
+if ARGUMENTS.get('dump',0): 
+	dump=1
+	cppflags=" -DDUMP"
+	includes.append(verilator_obj_dir_dump) 
+else: 
+	cppflags=" -O3"
+	dump=0
+	includes.append(verilator_obj_dir) 
 
 def verilator_emitter (target, source, env):
 	for s in source:
@@ -33,20 +41,17 @@ def verilator_emitter (target, source, env):
 
 def verilator_dump_emitter (target, source, env):
 	for s in source:
-		p = verilator_obj_dir_dump+'/V'+ str(s)[:-2]
+		p = verilator_obj_dir_dump +'/V'+ str(s)[:-2]
 		target = [ (p+x) for x in Split('.cpp .h __Syms.cpp __Syms.h __Trace.cpp __Trace__Slow.cpp') ]
 	return target,source
 	
 verilator_dump_builder= Builder(action='verilator --Mdir '+verilator_obj_dir_dump+' --trace --cc $SOURCE', emitter=verilator_dump_emitter)
 
-verilator_builder= Builder(action='verilator --Mdir '+verilator_obj_dir+' -O3 --cc $SOURCE', emitter=verilator_emitter)
-
-if ARGUMENTS.get('dump',0): dump=1
-else: dump=0
-
+verilator_builder     = Builder(action='verilator --Mdir '+verilator_obj_dir+' -O3 --cc $SOURCE', emitter=verilator_emitter)
 
 env = Environment(
                   CPPPATH = includes,
+                  CPPFLAGS =cppflags,
                   LIBS = libs,
                   LIBPATH = libpath,
                   FRAMEWORKS = Split("Python"),
@@ -71,7 +76,7 @@ Repository(env['VERILATOR'])
 VariantDir(gen_tree, '.')
 
 if dump: env.VerilatorDump('fifo.v')
-else: env.Verilator('fifo.v')
+else:    env.Verilator('fifo.v')
 
 env.SConscript(gen_tree+'/include/SConscript')
 env.SConscript(gen_tree+'/src/SConscript')

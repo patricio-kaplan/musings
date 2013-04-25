@@ -9,12 +9,12 @@ if dump:
 				,gen_tree+'/include/verilated_vcd_c.so'
 				,gen_tree+'/include/verilated.so'
 				])
-	env.SharedLibrary('fifo_dump_wrap.so', 
+	env.SharedLibrary('fifo_wrap_dump.so', 
 				[gen_tree+'/obj_dir_dump/Vfifo.cpp'
 				,gen_tree+'/obj_dir_dump/Vfifo__Syms.cpp'
 				,gen_tree+'/obj_dir_dump/Vfifo__Trace.cpp'
 				,gen_tree+'/obj_dir_dump/Vfifo__Trace__Slow.cpp'
-				,gen_tree+'/src/fifo_dump_wrap.cpp'
+				,gen_tree+'/src/fifo_wrap.cpp'
 				,gen_tree+'/include/verilated_vcd_c.so'
 				,gen_tree+'/include/verilated.so'
 				])
