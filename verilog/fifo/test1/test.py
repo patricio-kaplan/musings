@@ -2,9 +2,10 @@ from myhdl import *
 import getopt
 import sys
 import random
+import verilated_wrap
+import reader_freq
 
-try:
-	opts,args=getopt.getopt(sys.argv[1:], 'ds:')
+try:   opts,args=getopt.getopt(sys.argv[1:], 'ds:', ['read_freq='])
 except getopt.GetoptError as err:
 	print err
 	print "usage: ", sys.argv[0], ' [-d] [-s seed] '
@@ -19,8 +20,11 @@ for i,a in opts:
  	elif i=='-s':
 	 	seed=int(a)
 		print " note: seed is ", seed
+ 	elif i=='--read_freq':
+		read_freq_type=a
+		print "read_freq_type=",read_freq_type
 
-import verilated_wrap
+
 
 if dump: 
 	import verilated_vcd_c_wrap
@@ -51,6 +55,7 @@ def driver(clk,dut,flits_to_inject):
 		dut.rst=0
 		print "done initializing"
 		data=0
+		rdg = eval("reader_freq."+read_freq_type+"()")
 
 		while True:
 			yield clk.posedge
@@ -65,7 +70,7 @@ def driver(clk,dut,flits_to_inject):
 			if dut.empty:
 				dut.rd=0
 			else:
-				dut.rd=1
+				dut.rd=rdg.next()
 
 	return write
 

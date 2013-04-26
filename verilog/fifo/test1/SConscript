@@ -1,41 +1,43 @@
 Import('env')
 import os
 
+test_file = 'test.py'
 gen_tree = env['GEN_TREE']
-if env['DUMP']: dump = ' -d '
-else: dump=''
-
-sfp = File('test.py').abspath
-
-# path relative to source tree
-rp = os.path.dirname(os.path.relpath(sfp, env['SRC_TREE']))
-
-target_dir = gen_tree+'/'+rp
-wrap_dir   = gen_tree+'/src'
-
-if dump != '': 	
-	targets = [ ( target_dir+'/'+x ) for x in Split('out.log err.log dump.vcd') ]
-else:		
-	targets = [ ( target_dir+'/'+x ) for x in Split('out.log err.log') ]
-
+wrap_dir = gen_tree+'/src'
 if 'PYTHONPATH' in os.environ: pp = wrap_dir+':'+os.environ['PYTHONPATH'] 
 else: pp = wrap_dir
-
-print 'pp=',pp
-
-# the following 2 could be combined into a specialized "run_test" builder with its own scanner for external imports dependencies
-node = env.Command(targets, 'test.py', [ Mkdir(target_dir), ' cd '+target_dir
-							  + ' && '
-							  + ' env '
-							  + ' PYTHONPATH='+pp
-							  + ' time python '+sfp
-							  + dump
-							  + ' > ${TARGETS[0]} 2> ${TARGETS[1]}' 
-					])
-
-if dump != '': 	
-	env.Depends(node, [ (wrap_dir+'/'+x) for x in Split('fifo_wrap_dump.so verilated_wrap.so verilated_vcd_c_wrap.so') ] )
+sfn 	 = File(test_file)
+sfp 	 = sfn.abspath
+if env['DUMP']: 
+	dump = ' -d '
+	env.Depends(sfn, [ (wrap_dir+'/'+x) for x in Split('fifo_wrap_dump.so verilated_wrap.so verilated_vcd_c_wrap.so') ] )
 else:
-	env.Depends(node, [ (wrap_dir+'/'+x+'_wrap.so') for x in Split('fifo verilated') ] )
+	dump=''
+	env.Depends(sfn, [ (wrap_dir+'/'+x+'_wrap.so') for x in Split('fifo verilated') ] )
 
-env.AlwaysBuild(targets)
+test_table =	{ 'solid': 	'--read_freq=solid'
+		,'on_off': 	'--read_freq=on_off'
+		}
+
+
+for test_name in test_table:
+	config = test_table[test_name]
+	rp = os.path.dirname(os.path.relpath(sfp, env['SRC_TREE'])) + '/'+test_name  # path relative to source tree
+	print "test name=", test_name, " config=", config, " rp", rp, " dirname sfp", os.path.dirname(sfp)
+	target_dir = gen_tree+'/'+rp
+	targets = [ ( target_dir+'/'+x ) for x in Split('out.log err.log') ]
+	if dump != '': targets.append( target_dir+'/dump.vcd' )
+
+	# the following 2 could be combined into a specialized "run_test" builder with its own scanner for external imports dependencies
+	env.Command(targets, test_file, [ Mkdir(target_dir)	  , ' cd '+target_dir
+								  + ' && '
+								  + ' env '
+								  + ' PYTHONPATH='+pp
+								  + ' time python '+sfp
+								  + dump
+								  + ' ' + config + ' '
+								  + ' > ${TARGETS[0]} 2> ${TARGETS[1]}' 
+						])
+
+
+	env.AlwaysBuild(targets)
