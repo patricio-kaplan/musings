@@ -42,4 +42,4 @@ for test_name in test_table:
 
 
 	env.AlwaysBuild(targets)
-	env.Summary("../summary.log", targets[0])
+	env.Summary(gen_tree+"/summary.log", targets[0])

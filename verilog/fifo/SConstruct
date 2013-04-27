@@ -1,22 +1,23 @@
-from os import *
+import os 
 import sys
 import platform
+import re
 
 platform = platform.platform(terse=1)
 
-if 'VERILATOR_ROOT' in environ: _VERILATOR =environ['VERILATOR_ROOT']
+if 'VERILATOR_ROOT' in os.environ: _VERILATOR =os.environ['VERILATOR_ROOT']
 else: _VERILATOR ='/Users/patriciokaplan/Downloads/verilator-3.846'
 
 libs = Split("boost_python")
 
-if 'BOOST_INCLUDE' in environ: libpath=Split(environ['BOOST_INCLUDE']+'/stage/lib')
+if 'BOOST_INCLUDE' in os.environ: libpath=Split(os.environ['BOOST_INCLUDE']+'/stage/lib')
 else: libpath=[]
 
 includes = ["include","/usr/include/python2.7", _VERILATOR+'/include']
 
-if 'BOOST_INCLUDE' in environ: includes.append(environ['BOOST_INCLUDE'])
+if 'BOOST_INCLUDE' in os.environ: includes.append(os.environ['BOOST_INCLUDE'])
 
-if 'GEN_TREE' in environ: gen_tree=environ['GEN_TREE']
+if 'GEN_TREE' in os.environ: gen_tree=os.environ['GEN_TREE']
 else: gen_tree = '/home/patricio/Documents/musings_gen'
 
 gen_tree += '/' + platform + '/verilog/fifo'
@@ -48,10 +49,22 @@ def verilator_dump_emitter (target, source, env):
 
 
 def summarizer(target, source, env):
+	print target[0].abspath
+	output_file = open(target[0].abspath, 'w') 
 	for s in source:
-		print "summarizer source ", str(s)
-	for s in target:
-		print "summarizer target ", str(s)
+		input_file = open(s.abspath, 'r')
+		error=False
+		completed=False
+		for line in input_file:
+			if re.search("ERROR", line):
+				error=True
+				break
+			elif re.search("TEST COMPLETED",line):
+				completed=True
+
+		output_file.write(s.abspath)
+		if not error and completed: output_file.write(": PASSED\n")
+		else: 			    output_file.write(": FAILED\n")
 	return None
 
 env = Environment(
@@ -66,7 +79,7 @@ env = Environment(
 			   , 'Verilator':    Builder(action='verilator --Mdir '+verilator_obj_dir+' -O3 --cc $SOURCE', emitter=verilator_emitter)
 			   , 'Summary':	     Builder(action=summarizer,multi=1)
 			   },
-		  SRC_TREE=getcwd(),
+		  SRC_TREE=os.getcwd(),
 		  GEN_TREE=gen_tree,
 		  VERILATOR=_VERILATOR,
 		  DUMP=dump,
@@ -74,13 +87,11 @@ env = Environment(
 
 # copy dynamic libraries paths
 for v in Split('DYLD_FALLBACK_LIBRARY_PATH LD_LIBRARY_PATH'): 
-	if v in environ:
-		env['ENV'][v]=environ[v]
+	if v in os.environ:
+		env['ENV'][v]=os.environ[v]
 
 Export('env')
 
-# export this node so tests can add themselves as dependencies
-env.Summary(output='summary.log')#,'a.txt')
 
 Repository(env['VERILATOR'])
 
@@ -91,5 +102,7 @@ else:    env.Verilator('fifo.v')
 
 env.SConscript(gen_tree+'/include/SConscript')
 env.SConscript(gen_tree+'/src/SConscript')
-
 env.SConscript('test1/SConscript')
+
+# export this node so tests can add themselves as dependencies
+env.Summary(output=gen_tree+'/summary.log')

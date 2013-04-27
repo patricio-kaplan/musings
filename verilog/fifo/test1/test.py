@@ -134,6 +134,7 @@ def testbench():
 		if not timeout_count: print "ERROR: timed out waiting for fifo to drain"
 		if len(exp_fifo)>0: print "ERROR: exp fifo not empty"
 		if dump: tracer.close()
+		print "TEST COMPLETED"
 		raise StopSimulation
 
 	return clkGen, stimulus, dut_wrap, driver(clk,dut,flits_to_inject), checker(clk,dut,flits_read)
