@@ -5,7 +5,7 @@ import random
 import verilated_wrap
 import reader_freq
 
-try:   opts,args=getopt.getopt(sys.argv[1:], 'ds:', ['read_freq='])
+try:   opts,args=getopt.getopt(sys.argv[1:], 'ds:', ['read_freq=', 'write_freq='])
 except getopt.GetoptError as err:
 	print err
 	print "usage: ", sys.argv[0], ' [-d] [-s seed] '
@@ -23,6 +23,9 @@ for i,a in opts:
  	elif i=='--read_freq':
 		read_freq_type=a
 		print "read_freq_type=",read_freq_type
+ 	elif i=='--write_freq':
+		write_freq_type=a
+		print "write_freq_type=",write_freq_type
 
 
 
@@ -43,7 +46,7 @@ def driver(clk,dut,flits_to_inject):
 	myr = random.Random()
 	myr.seed(seed)
 
-	wrdl = range(0,dut.wr_data_len())
+	wrdl = range(dut.wr_data_len())
 
 	@instance
 	def write():
@@ -56,10 +59,11 @@ def driver(clk,dut,flits_to_inject):
 		print "done initializing"
 		data=0
 		rdg = eval("reader_freq."+read_freq_type+"()")
+		wrg = eval("reader_freq."+write_freq_type+"()")
 
 		while True:
 			yield clk.posedge
-			if dut.full or not flits_to_inject:
+			if dut.full or not flits_to_inject or not wrg.next():
 				dut.wr=0
 			else:
 				dut.wr=1
@@ -78,7 +82,7 @@ def checker(clk,dut,flits_read):
 	# grab our own RNG
 	myr = random.Random()
 	myr.seed(seed)
-	rddl = range(0,dut.rd_data_len())
+	rddl = range(dut.rd_data_len())
 
 	@always(clk.negedge)
 	def read():

@@ -45,9 +45,14 @@ def verilator_dump_emitter (target, source, env):
 		target = [ (p+x) for x in Split('.cpp .h __Syms.cpp __Syms.h __Trace.cpp __Trace__Slow.cpp') ]
 	return target,source
 	
-verilator_dump_builder= Builder(action='verilator --Mdir '+verilator_obj_dir_dump+' --trace --cc $SOURCE', emitter=verilator_dump_emitter)
 
-verilator_builder     = Builder(action='verilator --Mdir '+verilator_obj_dir+' -O3 --cc $SOURCE', emitter=verilator_emitter)
+
+def summarizer(target, source, env):
+	for s in source:
+		print "summarizer source ", str(s)
+	for s in target:
+		print "summarizer target ", str(s)
+	return None
 
 env = Environment(
                   CPPPATH = includes,
@@ -57,11 +62,14 @@ env = Environment(
                   FRAMEWORKS = Split("Python"),
                   SHLIBPREFIX = '',
                   SHLIBSUFFIX = '.dylib',
-		  BUILDERS={'VerilatorDump':verilator_dump_builder, 'Verilator':verilator_builder},
+		  BUILDERS={ 'VerilatorDump':Builder(action='verilator --Mdir '+verilator_obj_dir_dump+' --trace --cc $SOURCE', emitter=verilator_dump_emitter)
+			   , 'Verilator':    Builder(action='verilator --Mdir '+verilator_obj_dir+' -O3 --cc $SOURCE', emitter=verilator_emitter)
+			   , 'Summary':	     Builder(action=summarizer,multi=1)
+			   },
 		  SRC_TREE=getcwd(),
 		  GEN_TREE=gen_tree,
 		  VERILATOR=_VERILATOR,
-		  DUMP=dump
+		  DUMP=dump,
                 )
 
 # copy dynamic libraries paths
@@ -70,6 +78,9 @@ for v in Split('DYLD_FALLBACK_LIBRARY_PATH LD_LIBRARY_PATH'):
 		env['ENV'][v]=environ[v]
 
 Export('env')
+
+# export this node so tests can add themselves as dependencies
+env.Summary(output='summary.log')#,'a.txt')
 
 Repository(env['VERILATOR'])
 

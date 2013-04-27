@@ -15,15 +15,16 @@ else:
 	dump=''
 	env.Depends(sfn, [ (wrap_dir+'/'+x+'_wrap.so') for x in Split('fifo verilated') ] )
 
-test_table =	{ 'solid': 	'--read_freq=solid'
-		,'on_off': 	'--read_freq=on_off'
+test_table =	{'rd_solid_wr_solid': 	'--read_freq=solid --write_freq=solid'
+		,'rd_solid_wr_on_off': 	'--read_freq=solid --write_freq=on_off'
+		,'rd_on_off_wr_solid': 	'--read_freq=on_off --write_freq=solid'
+		,'rd_on_off_wr_on_off': '--read_freq=on_off --write_freq=on_off'
 		}
 
 
 for test_name in test_table:
 	config = test_table[test_name]
 	rp = os.path.dirname(os.path.relpath(sfp, env['SRC_TREE'])) + '/'+test_name  # path relative to source tree
-	print "test name=", test_name, " config=", config, " rp", rp, " dirname sfp", os.path.dirname(sfp)
 	target_dir = gen_tree+'/'+rp
 	targets = [ ( target_dir+'/'+x ) for x in Split('out.log err.log') ]
 	if dump != '': targets.append( target_dir+'/dump.vcd' )
@@ -41,3 +42,4 @@ for test_name in test_table:
 
 
 	env.AlwaysBuild(targets)
+	env.Summary("../summary.log", targets[0])
