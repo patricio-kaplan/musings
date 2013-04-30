@@ -1,0 +1,63 @@
+import re
+
+def verilog_builder(target, source, env):
+	for t in target: print "target: ", t.abspath
+	for s in source: print "source: ", s.abspath
+
+vpp_full_line=re.compile('\s*:\s*(.*)')
+vpp_inline_start=re.compile('\s*\[:(.*)')
+vpp_inline_end  =re.compile('\s*\]:')
+vpp_snippet=re.compile('`([^a-zA-Z][^`]+)`')
+def vpp_pre(target, source, env):
+	inf = open(source[0].abspath, 'r')
+	outf= open(target[0].abspath, 'w')
+	inline=0
+	for l in inf:
+		result = vpp_full_line.match(l)
+		if result:
+			outf.write(result.group(1)+'\n')
+			continue
+		if inline:
+			if vpp_inline_end.match(l): inline=0
+			else: outf.write(l)
+			continue
+		
+		result = vpp_inline_start.match(l)
+		if result:
+			inline=1
+			outf.write(result.group(1)+'\n')
+			continue
+
+		i=0
+		outf.write('print ');
+		while i<len(l):
+			if i>0: outf.write(',')
+			result = vpp_snippet.search(l[i:])
+			if not result: 
+				outf.write('"'+l[i:].rstrip()+'"')
+				break
+			if result.start(0): 
+				outf.write('"'+l[i:i+result.start(0)]+'",')
+			outf.write(l[i+result.start(0)+1:i+result.end(0)-1])
+			i+=result.end(0)
+		outf.write(',"\\n";\n')
+	outf.close()
+
+def vpp_perl(env,source):
+	i1 = env.VppPre(source)	
+	i2 = env.Perl(i1)	
+	return i2
+
+
+env = Environment( BUILDERS={'Verilog' : Builder(action=verilog_builder,multi=1) 
+			    ,'VppPre' : Builder(action=vpp_pre,suffix='.pl', src_suffix='.pp')
+			    ,'Perl' : Builder(action='perl $SOURCE > $TARGET',suffix='', src_suffix='.pl')
+			    } 
+		 )
+env.AddMethod(vpp_perl, "Vpp")
+
+#env.Verilog(output='c.log', 'a.v')
+#env.Verilog(output='c.log', 'b.v')
+env.Vpp    ('a.v.pp')
+env.Verilog('c.log','a.v')
+env.Verilog('c.log','b.v')
