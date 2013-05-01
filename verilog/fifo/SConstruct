@@ -17,10 +17,7 @@ includes = ["include","/usr/include/python2.7", _VERILATOR+'/include']
 
 if 'BOOST_INCLUDE' in os.environ: includes.append(os.environ['BOOST_INCLUDE'])
 
-if 'GEN_TREE' in os.environ: gen_tree=os.environ['GEN_TREE']
-else: gen_tree = '/home/patricio/Documents/musings_gen'
-
-gen_tree += '/' + platform + '/verilog/fifo'
+gen_tree = os.environ['GEN_TREE'] + '/' + os.path.relpath(os.getcwd(), os.environ['SRC_TREE']) + '/' + platform 
 
 verilator_obj_dir      = gen_tree+'/obj_dir'
 verilator_obj_dir_dump = gen_tree+'/obj_dir_dump'

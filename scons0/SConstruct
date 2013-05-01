@@ -1,63 +1,88 @@
 import re
+import os
+from SCons.Node import Node
+from SCons.Node.Python import Value
+from SCons.Util import is_String, is_Sequence, is_Dict
+
+dash_y=re.compile('\s*-y\s+(.*)')
+dash_v=re.compile('\s*-v\s+(.*)')
+def verilog_builder_emitter(target, source, env):
+	for s in source: 
+		result= dash_v.match(str(s))
+		if result: env.Depends(target[0], File(result.group(1)))
+	return target, source
 
 def verilog_builder(target, source, env):
-	for t in target: print "target: ", t.abspath
-	for s in source: print "source: ", s.abspath
+	outf=open(target[0].abspath,'w')
+	print >>outf, env['VERILOG_BUILD_OPTS']
+	for s in source: 
+		try:
+			print >>outf, s.abspath
+		except:
+			ss=str(s)
+			result= dash_y.match(str(ss))
+			if result: 
+				print >>outf, "-y ", Dir(result.group(1)).abspath
+				continue
+			result= dash_v.match(str(ss))
+			if result: 
+				print >>outf, "-v ", File(result.group(1)).abspath
+				continue
 
 vpp_full_line=re.compile('\s*:\s*(.*)')
 vpp_inline_start=re.compile('\s*\[:(.*)')
 vpp_inline_end  =re.compile('\s*\]:')
 vpp_snippet=re.compile('`([^a-zA-Z][^`]+)`')
-def vpp_pre(target, source, env):
-	inf = open(source[0].abspath, 'r')
-	outf= open(target[0].abspath, 'w')
-	inline=0
-	for l in inf:
-		result = vpp_full_line.match(l)
-		if result:
-			outf.write(result.group(1)+'\n')
-			continue
-		if inline:
-			if vpp_inline_end.match(l): inline=0
-			else: outf.write(l)
-			continue
-		
-		result = vpp_inline_start.match(l)
-		if result:
-			inline=1
-			outf.write(result.group(1)+'\n')
-			continue
 
-		i=0
-		outf.write('print ');
-		while i<len(l):
-			if i>0: outf.write(',')
-			result = vpp_snippet.search(l[i:])
-			if not result: 
-				outf.write('"'+l[i:].rstrip()+'"')
-				break
-			if result.start(0): 
-				outf.write('"'+l[i:i+result.start(0)]+'",')
-			outf.write(l[i+result.start(0)+1:i+result.end(0)-1])
-			i+=result.end(0)
-		outf.write(',"\\n";\n')
+def vpp_pre(target,source,env):
+	outf= os.popen('perl > ' + target[0].abspath, 'w')
+	for s in source:
+		try: 
+			inf=open(s.abspath,'r')
+		except: 
+			print >>outf, s
+			continue
+		inline=0
+		for l in inf:
+			result = vpp_full_line.match(l)
+			if result:
+				outf.write(result.group(1)+'\n')
+				continue
+			if inline:
+				if vpp_inline_end.match(l): inline=0
+				else: outf.write(l)
+				continue
+			
+			result = vpp_inline_start.match(l)
+			if result:
+				inline=1
+				outf.write(result.group(1)+'\n')
+				continue
+
+			i=0
+			outf.write('print ');
+			while i<len(l):
+				if i>0: outf.write(',')
+				result = vpp_snippet.search(l[i:])
+				if not result: 
+					outf.write('"'+l[i:].rstrip()+'"')
+					break
+				if result.start(0): 
+					outf.write('"'+l[i:i+result.start(0)]+'",')
+				outf.write(l[i+result.start(0)+1:i+result.end(0)-1])
+				i+=result.end(0)
+			outf.write(',"\\n";\n')
 	outf.close()
 
-def vpp_perl(env,source):
-	i1 = env.VppPre(source)	
-	i2 = env.Perl(i1)	
-	return i2
-
-
-env = Environment( BUILDERS={'Verilog' : Builder(action=verilog_builder,multi=1) 
-			    ,'VppPre' : Builder(action=vpp_pre,suffix='.pl', src_suffix='.pp')
-			    ,'Perl' : Builder(action='perl $SOURCE > $TARGET',suffix='', src_suffix='.pl')
+env = Environment( BUILDERS={'Verilog' : Builder(action=verilog_builder,multi=1,emitter=verilog_builder_emitter) 
+			    ,'Vpp' : Builder(action=vpp_pre,  source_factory=File)
 			    } 
+		 , VERILOG_BUILD_OPTS='+define+abc'
 		 )
-env.AddMethod(vpp_perl, "Vpp")
 
-#env.Verilog(output='c.log', 'a.v')
-#env.Verilog(output='c.log', 'b.v')
-env.Vpp    ('a.v.pp')
-env.Verilog('c.log','a.v')
-env.Verilog('c.log','b.v')
+env.Vpp('a.v', [Value('$a=11; $b=20;'), Value('$d=99;'), 'a.v.pp'])
+env.Vpp('c.v', [Value('$a=1; $b=20;'), Value('$d=3;'), 'a.v.pp'])
+env.Verilog('build1.f','a.v')
+env.Verilog('build1.f','b.v')
+env.Verilog('build1.f',Value('-y .'))
+env.Verilog('build1.f',Value('-v c.v'))

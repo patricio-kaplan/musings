@@ -29,14 +29,6 @@ always @(posedge clk) begin
 end
 always @(posedge clk) begin
 	if (wr) mem[wrptr[DLG2-1:0]] <= wr_data;
-	if (wr) begin
-		if (full) begin
-			$display ("OVERFLOW");
-		end else begin
-			$display ("WROTE %h to %h", wr_data, wrptr);
-		end
-	end
-	$display ("wr=%d, rd=%d, full=%d, wrptr=%x rdptr=%x", wr,rd,full, wrptr,rdptr);
 end
 
 always @(*) begin
