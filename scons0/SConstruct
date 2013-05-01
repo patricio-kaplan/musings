@@ -1,8 +1,8 @@
 import re
 import os
-from SCons.Node import Node
-from SCons.Node.Python import Value
-from SCons.Util import is_String, is_Sequence, is_Dict
+import subprocess
+
+debug=0
 
 dash_y=re.compile('\s*-y\s+(.*)')
 dash_v=re.compile('\s*-v\s+(.*)')
@@ -13,21 +13,24 @@ def verilog_builder_emitter(target, source, env):
 	return target, source
 
 def verilog_builder(target, source, env):
-	outf=open(target[0].abspath,'w')
-	print >>outf, env['VERILOG_BUILD_OPTS']
-	for s in source: 
-		try:
-			print >>outf, s.abspath
-		except:
-			ss=str(s)
-			result= dash_y.match(str(ss))
-			if result: 
-				print >>outf, "-y ", Dir(result.group(1)).abspath
-				continue
-			result= dash_v.match(str(ss))
-			if result: 
-				print >>outf, "-v ", File(result.group(1)).abspath
-				continue
+	for t in target:
+		outf=open(t.abspath,'w')
+		print >>outf, env['VERILOG_BUILD_OPTS']
+		for s in source: 
+			try:
+				print >>outf, s.abspath
+			except:
+				ss=str(s)
+				result= dash_y.match(ss)
+				if result: 
+					print >>outf, "-y ", Dir(result.group(1)).abspath
+					continue
+				result= dash_v.match(ss)
+				if result: 
+					print >>outf, "-v ", File(result.group(1)).abspath
+					continue
+				print >>outf,s # catch all for +define, etc
+
 
 vpp_full_line=re.compile('\s*:\s*(.*)')
 vpp_inline_start=re.compile('\s*\[:(.*)')
@@ -35,44 +38,59 @@ vpp_inline_end  =re.compile('\s*\]:')
 vpp_snippet=re.compile('`([^a-zA-Z][^`]+)`')
 
 def vpp_pre(target,source,env):
-	outf= os.popen('perl > ' + target[0].abspath, 'w')
-	for s in source:
-		try: 
-			inf=open(s.abspath,'r')
-		except: 
-			print >>outf, s
-			continue
-		inline=0
-		for l in inf:
-			result = vpp_full_line.match(l)
-			if result:
-				outf.write(result.group(1)+'\n')
-				continue
-			if inline:
-				if vpp_inline_end.match(l): inline=0
-				else: outf.write(l)
-				continue
-			
-			result = vpp_inline_start.match(l)
-			if result:
-				inline=1
-				outf.write(result.group(1)+'\n')
-				continue
+	perl_file =target[0].abspath+'.pl'
 
-			i=0
-			outf.write('print ');
-			while i<len(l):
-				if i>0: outf.write(',')
-				result = vpp_snippet.search(l[i:])
-				if not result: 
-					outf.write('"'+l[i:].rstrip()+'"')
-					break
-				if result.start(0): 
-					outf.write('"'+l[i:i+result.start(0)]+'",')
-				outf.write(l[i+result.start(0)+1:i+result.end(0)-1])
-				i+=result.end(0)
-			outf.write(',"\\n";\n')
-	outf.close()
+	for attempt in range(2):
+
+		if attempt==1: 	outf= open(perl_file, 'w')
+		else: 	    	outf= os.popen('perl > '+target[0].abspath, 'w')
+
+		for s in source:
+			try: 
+				inf=open(s.abspath,'r')
+			except: 
+				print >>outf, s
+				continue
+			inline=0
+			for l in inf:
+				result = vpp_full_line.match(l)
+				if result:
+					print >>outf, result.group(1)
+					continue
+				if inline:
+					if vpp_inline_end.match(l): inline=0
+					else: print >>outf,l
+					continue
+				
+				result = vpp_inline_start.match(l)
+				if result:
+					inline=1
+					print >>outf, result.group(1)
+					continue
+
+				i=0
+				outf.write('print ');
+				while i<len(l):
+					if i>0: outf.write(',')
+					result = vpp_snippet.search(l[i:])
+					if not result: 
+						outf.write('"'+l[i:].rstrip()+'"')
+						break
+					if result.start(0): 
+						outf.write('"'+l[i:i+result.start(0)]+'",')
+					outf.write(l[i+result.start(0)+1:i+result.end(0)-1])
+					i+=result.end(0)
+				outf.write(',"\\n";\n')
+		rc = outf.close()
+
+		if rc==None:  
+			if (attempt==0) and os.access(perl_file,os.F_OK): 
+				os.remove(perl_file) # remove lingering intermediate files from previous attempts
+			break
+		else: 
+			os.remove(target[0].abspath)
+			print "ERROR: perl returned code", rc, " check file ", perl_file
+
 
 env = Environment( BUILDERS={'Verilog' : Builder(action=verilog_builder,multi=1,emitter=verilog_builder_emitter) 
 			    ,'Vpp' : Builder(action=vpp_pre,  source_factory=File)
@@ -80,9 +98,25 @@ env = Environment( BUILDERS={'Verilog' : Builder(action=verilog_builder,multi=1,
 		 , VERILOG_BUILD_OPTS='+define+abc'
 		 )
 
-env.Vpp('a.v', [Value('$a=11; $b=20;'), Value('$d=99;'), 'a.v.pp'])
-env.Vpp('c.v', [Value('$a=1; $b=20;'), Value('$d=3;'), 'a.v.pp'])
-env.Verilog('build1.f','a.v')
-env.Verilog('build1.f','b.v')
-env.Verilog('build1.f',Value('-y .'))
-env.Verilog('build1.f',Value('-v c.v'))
+gen_tree='/home/patricio/Documents/musings_gen' 
+src_tree='/home/patricio/Documents/musings'
+VariantDir(gen_tree,src_tree)
+
+rel_path=os.path.relpath(os.getcwd(),src_tree)
+gen_dir =gen_tree+'/'+rel_path
+
+
+b1=gen_dir+'/build1.f'
+b2=gen_dir+'/build2.f'
+all_builds=[b1,b2]
+
+env.Vpp(gen_dir+'/a.v', [Value('$a=11; $b=20;'), Value('$d=99;'), 'a.v.pp'])
+env.Vpp(gen_dir+'/c.v', [Value('$a=1; $b=20;'), Value('$d=3;'), 'a.v.pp'])
+sram1=gen_dir+'/sram/sram_16d_32w.v'
+env.Vpp(sram1, [Value('$d=16; $w=32;'), src_tree+'/verilog/sram/sram.v.pp'])
+for b in all_builds: env.Verilog(b,gen_dir+'/a.v')
+for b in all_builds: env.Verilog(b,'b.v')
+for b in all_builds: env.Verilog(b,sram1)
+env.Verilog(b1,Value('-y .'))
+env.Verilog(b2,Value('-v '+gen_dir+'/c.v'))
+env.Verilog(b2,Value('+define+SOMETHING'))
